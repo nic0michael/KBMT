@@ -1,0 +1,196 @@
+@if (!user()) {
+  <main class="login-layout">
+    <section class="login-intro" aria-labelledby="welcome-heading">
+      <a class="brand" href="#" aria-label="KNOWLmate home">
+        <span class="brand-mark">K</span>
+        <span>KNOWLmate</span>
+      </a>
+      <div class="intro-copy">
+        <p class="eyebrow">Architecture knowledge, organised</p>
+        <h1 id="welcome-heading">A clearer way to work with your knowledge.</h1>
+        <p class="intro-description">One calm, focused place to browse the architecture guides and reference material your team relies on.</p>
+        <div class="intro-note"><span class="note-icon">✦</span><span>Built for focused reading and trusted knowledge.</span></div>
+      </div>
+      <div class="intro-footer"><span class="footer-dot"></span>Secure workspace access</div>
+    </section>
+
+    <section class="login-panel" aria-labelledby="login-heading">
+      <div class="theme-control login-theme">
+        <label for="theme-login">Appearance</label>
+        <select id="theme-login" [value]="theme()" (change)="setThemeFromEvent($event)">
+          <option value="light">Light</option><option value="gray">Gray</option><option value="black">Black</option>
+        </select>
+      </div>
+      <div class="login-card">
+        <div class="login-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.4c0 4.4 3.2 8.4 7.5 9.6 4.3-1.2 7.5-5.2 7.5-9.6V6L12 3Zm0 3.1 4.7 1.8v3.5c0 3-2 5.9-4.7 7-2.7-1.1-4.7-4-4.7-7V7.9L12 6.1Zm-.9 8.8 4.5-4.5-1.3-1.3-3.2 3.2-1.5-1.5-1.3 1.3 2.8 2.8Z"/></svg></div>
+        <p class="eyebrow">Welcome back</p>
+        <h2 id="login-heading">Sign in to your workspace</h2>
+        <p class="muted login-description">Use your KNOWLmate account to continue.</p>
+
+        @if (errorMessage()) { <div class="alert alert-error" role="alert">{{ errorMessage() }}</div> }
+        @if (successMessage()) { <div class="alert alert-success" role="status">{{ successMessage() }}</div> }
+
+        <form (ngSubmit)="signIn()">
+          <label for="user-id">User ID</label>
+          <input id="user-id" name="userID" [(ngModel)]="userID" autocomplete="username" placeholder="Enter your user ID" required />
+          <label for="password">Password</label>
+          <div class="password-field">
+            <input id="password" name="password" [(ngModel)]="password" [type]="showPassword() ? 'text' : 'password'" autocomplete="current-password" placeholder="Enter your password" required />
+            <button class="password-toggle" type="button" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'" [attr.aria-pressed]="showPassword()" (click)="togglePasswordVisibility()">{{ showPassword() ? 'Hide' : 'Show' }}</button>
+          </div>
+          <button class="button button-primary button-wide sign-in-button" type="submit" [disabled]="loading()">
+            @if (loading()) { <span class="spinner"></span> Signing in… } @else { Sign in <span aria-hidden="true">→</span> }
+          </button>
+        </form>
+        <p class="login-security"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1 2.5 3v4c0 3.2 2.3 6.1 5.5 7 3.2-.9 5.5-3.8 5.5-7V3L8 1Zm0 2 3.6 1.3V7c0 2.3-1.5 4.4-3.6 5.2C5.9 11.4 4.4 9.3 4.4 7V4.3L8 3Z"/></svg> Your access token stays in memory until you sign out or reload the page.</p>
+      </div>
+      <div class="login-bottom">KNOWLmate <span>•</span> Knowledge for architecture teams</div>
+    </section>
+  </main>
+} @else {
+  <div class="application-shell">
+    <aside class="sidebar">
+      <a class="brand sidebar-brand" href="#" aria-label="KNOWLmate home" (click)="$event.preventDefault(); navigate('library')">
+        <span class="brand-mark">K</span><span>KNOWLmate</span>
+      </a>
+      <div class="workspace-label">WORKSPACE</div>
+      @if (hasReaderAccess()) {
+        <nav class="side-navigation" aria-label="Main navigation">
+          <button class="nav-item" [class.active]="page() === 'library' || page() === 'reader'" (click)="navigate('library')"><span class="nav-icon">▤</span>Knowledge Bases<span class="nav-chevron">›</span></button>
+          @if (isAdministrator()) {
+            <div class="nav-section-label">MANAGE</div>
+            <button class="nav-item" [class.active]="page() === 'admin'" (click)="navigate('admin')"><span class="nav-icon">⚙</span>Knowledge Base Admin<span class="nav-chevron">›</span></button>
+            <button class="nav-item" [class.active]="page() === 'users'" (click)="navigate('users')"><span class="nav-icon">♙</span>User Management<span class="nav-chevron">›</span></button>
+          }
+        </nav>
+      }
+      <div class="sidebar-bottom">
+        <div class="theme-control sidebar-theme">
+          <label for="theme-app">Appearance</label>
+          <select id="theme-app" [value]="theme()" (change)="setThemeFromEvent($event)"><option value="light">Light</option><option value="gray">Gray</option><option value="black">Black</option></select>
+        </div>
+        <div class="sidebar-user">
+          <div class="avatar">{{ user()?.userID?.charAt(0)?.toUpperCase() }}</div>
+          <div class="user-details"><strong>{{ user()?.userID }}</strong><span>{{ isAdministrator() ? 'Administrator' : 'Reader' }}</span></div>
+          <button class="icon-button signout-button" type="button" aria-label="Sign out" title="Sign out" (click)="signOut()"><svg viewBox="0 0 20 20"><path d="M8 3H4.5A1.5 1.5 0 0 0 3 4.5v11A1.5 1.5 0 0 0 4.5 17H8m4-3 4-4-4-4m4 4H7"/></svg></button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="breadcrumb"><span>Workspace</span><span class="crumb-divider">/</span><strong>{{ page() === 'admin' ? 'Knowledge Base Admin' : page() === 'users' ? 'User Management' : page() === 'reader' ? selectedKnowledgeBase()?.title : 'Knowledge Bases' }}</strong></div>
+        <div class="topbar-right"><span class="role-chip"><span class="role-dot"></span>{{ isAdministrator() ? 'Administrator access' : 'Reader access' }}</span><button class="icon-button mobile-signout" type="button" (click)="signOut()" aria-label="Sign out"><svg viewBox="0 0 20 20"><path d="M8 3H4.5A1.5 1.5 0 0 0 3 4.5v11A1.5 1.5 0 0 0 4.5 17H8m4-3 4-4-4-4m4 4H7"/></svg></button></div>
+      </header>
+
+      <div class="content-area">
+        @if (errorMessage()) { <div class="alert alert-error page-alert" role="alert">{{ errorMessage() }}<button type="button" (click)="errorMessage.set('')" aria-label="Dismiss">×</button></div> }
+        @if (successMessage()) { <div class="alert alert-success page-alert" role="status">{{ successMessage() }}<button type="button" (click)="successMessage.set('')" aria-label="Dismiss">×</button></div> }
+
+        @if (!hasReaderAccess()) {
+          <section class="access-pending panel">
+            <div class="empty-icon">⌑</div><p class="eyebrow">Access pending</p><h1>Your account is ready</h1>
+            <p class="muted">An administrator needs to grant reader or administrator access before you can browse Knowledge Bases.</p>
+            <button class="button button-secondary" (click)="signOut()">Sign out</button>
+          </section>
+        } @else if (page() === 'library') {
+          <section class="page-heading">
+            <div><p class="eyebrow">YOUR WORKSPACE</p><h1>Knowledge Bases</h1><p class="muted">Browse the architecture knowledge available to you.</p></div>
+            @if (isAdministrator()) { <button class="button button-primary" (click)="navigate('admin')"><span class="plus">＋</span> Register Knowledge Base</button> }
+          </section>
+          <section class="library-toolbar" aria-label="Knowledge Base controls">
+            <div class="search-box"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.8"/><path d="m13 13 4 4"/></svg><input type="search" aria-label="Search Knowledge Bases" placeholder="Search by title, version or description" [value]="search()" (input)="updateSearch($event)" /></div>
+            <div class="results-count">{{ filteredKnowledgeBases().length }} {{ filteredKnowledgeBases().length === 1 ? 'Knowledge Base' : 'Knowledge Bases' }}</div>
+          </section>
+          @if (loading() && knowledgeBases().length === 0) {
+            <div class="loading-state"><span class="spinner"></span> Loading your Knowledge Bases…</div>
+          } @else if (filteredKnowledgeBases().length === 0) {
+            <section class="empty-state panel"><div class="empty-icon">▤</div><h2>{{ search() ? 'No matching Knowledge Bases' : 'Your library is ready' }}</h2><p class="muted">{{ search() ? 'Try a different search term.' : isAdministrator() ? 'Register a Knowledge Base to get started.' : 'No Knowledge Bases are currently available to your account.' }}</p>@if (isAdministrator() && !search()) { <button class="button button-primary" (click)="navigate('admin')">Register Knowledge Base</button> }</section>
+          } @else {
+            <div class="knowledge-grid">
+              @for (item of filteredKnowledgeBases(); track item.id) {
+                <button class="knowledge-card" (click)="openKnowledgeBase(item)" [attr.aria-label]="'Open ' + item.title">
+                  <div class="card-topline"><span class="document-icon"><svg viewBox="0 0 24 24"><path d="M6 3.8A1.8 1.8 0 0 1 7.8 2h6.7L19 6.5v13.7a1.8 1.8 0 0 1-1.8 1.8H7.8A1.8 1.8 0 0 1 6 20.2V3.8Zm8 0v3.5h3.5M9 12h6m-6 3.5h6"/></svg></span><span class="content-type">{{ item.contentType }}</span></div>
+                  <h2>{{ item.title }}</h2><p class="card-description">{{ item.description || 'No description provided.' }}</p>
+                  <div class="card-meta"><span>Version {{ item.version }}</span><span class="meta-divider">•</span><span>{{ item.author || 'Knowledge Base' }}</span><span class="card-arrow" aria-hidden="true">↗</span></div>
+                </button>
+              }
+            </div>
+          }
+        } @else if (page() === 'reader') {
+          <section class="reader-heading"><button class="back-link" (click)="navigate('library')">← <span>All Knowledge Bases</span></button><p class="eyebrow">KNOWLEDGE BASE</p><label for="reader-kb-select">Select a Knowledge Base</label><select id="reader-kb-select" [ngModel]="selectedReaderKnowledgeBaseID" (ngModelChange)="changeReaderKnowledgeBase($event)"><option value="" disabled>Choose a Knowledge Base</option>@for (item of knowledgeBases(); track item.id) { <option [value]="item.id">{{ item.title }} — v{{ item.version }}</option> }</select><p class="muted">{{ selectedKnowledgeBase()?.contentType }}</p></section>
+          <section class="reader-preview panel"><aside class="reader-side"><p class="eyebrow">PAGES</p><label for="reader-page-select">Choose a page</label><select id="reader-page-select" [disabled]="knowledgeBasePages().length === 0" (ngModelChange)="openPage($event)" [ngModel]="selectedPage()?.id ?? ''"><option value="" disabled>Select a page</option>@for (item of knowledgeBasePages(); track item.id) { <option [value]="item.id">{{ item.title }}</option> }</select><span class="small-muted">{{ knowledgeBasePages().length }} pages available</span></aside><article class="reader-message" [class.page-selected]="selectedPage() !== null"><p class="eyebrow">DOCUMENT READING</p>@if (selectedPage()) { <h2>{{ selectedPage()?.title }}</h2><pre class="markdown-content">{{ markdownContent() }}</pre> } @else { <h2>Select a page to read</h2><p class="muted">Choose a page from the list to view its Markdown content.</p> }</article></section>
+        } @else if (page() === 'admin' && isAdministrator()) {
+          <section class="page-heading admin-heading"><div><p class="eyebrow">WORKSPACE SETTINGS</p><h1>Administration</h1><p class="muted">Manage Knowledge Base metadata and user access.</p></div></section>
+          <div class="admin-grid">
+            <section class="panel form-panel"><div class="panel-heading"><div class="section-icon">＋</div><div><h2>Register a Knowledge Base</h2><p class="muted">Add metadata to make a Knowledge Base visible to readers.</p></div></div>
+              <form (ngSubmit)="registerKnowledgeBase()" class="admin-form">
+                <div class="form-row"><div class="field"><label for="kb-title">Title <span class="required">*</span></label><input id="kb-title" name="title" [(ngModel)]="knowledgeBaseForm.title" required placeholder="e.g. TOGAF Architecture Guide" /></div><div class="field"><label for="kb-version">Version <span class="required">*</span></label><input id="kb-version" name="version" [(ngModel)]="knowledgeBaseForm.version" required placeholder="e.g. 1.0" /></div></div>
+                <div class="field"><label for="kb-folder">Folder name and version <span class="required">*</span></label><input id="kb-folder" name="folderNameVersion" [(ngModel)]="knowledgeBaseForm.folderNameVersion" required placeholder="e.g. TOGAF_Architecture_Guide_v1.0" /><span class="field-hint">Use a safe folder identifier with letters, numbers, underscores, dots or hyphens.</span></div>
+                <div class="form-row"><div class="field"><label for="kb-type">Content type <span class="required">*</span></label><select id="kb-type" name="contentType" [(ngModel)]="knowledgeBaseForm.contentType"><option>Free</option><option>Open-source</option><option>Copyrighted</option></select></div><div class="field"><label for="kb-active">Status <span class="required">*</span></label><select id="kb-active" name="isActive" [(ngModel)]="knowledgeBaseForm.isActive"><option [ngValue]="true">Active</option><option [ngValue]="false">Inactive</option></select></div></div>
+                <div class="field"><label for="kb-author">Author</label><input id="kb-author" name="author" [(ngModel)]="knowledgeBaseForm.author" placeholder="Person or organisation" /></div>
+                <div class="field"><label for="kb-description">Description</label><textarea id="kb-description" name="description" [(ngModel)]="knowledgeBaseForm.description" rows="3" placeholder="A short description for readers"></textarea></div>
+                <details class="optional-fields"><summary>Additional metadata <span>Optional</span></summary><div class="field"><label for="kb-email">Author email</label><input id="kb-email" name="emailAddress" type="email" [(ngModel)]="knowledgeBaseForm.emailAddress" placeholder="name@example.com" /></div><div class="field"><label for="kb-toc">Table of Contents reference</label><input id="kb-toc" name="tableOfContents" [(ngModel)]="knowledgeBaseForm.tableOfContents" placeholder="TABLE_OF_CONTENTS.md" /></div></details>
+                <div class="upload-note"><span>ⓘ</span><p>ZIP upload and document import are not available yet. This form registers metadata only.</p></div>
+                <div class="form-actions"><button class="button button-primary" type="submit" [disabled]="loading()">{{ loading() ? 'Registering…' : 'Register Knowledge Base' }}</button></div>
+              </form>
+            </section>
+<div class="admin-side-column">
+              <section class="panel form-panel"><div class="panel-heading"><div class="section-icon section-icon-blue">↑</div><div><h2>Upload a Markdown page</h2><p class="muted">Store an individual page in the selected Knowledge Base.</p></div></div><form class="admin-form" (ngSubmit)="uploadMarkdownPage()"><div class="field"><label for="page-kb-select">Knowledge Base</label><select id="page-kb-select" name="pageKnowledgeBase" [(ngModel)]="selectedUploadKnowledgeBaseID" required><option value="" disabled>Select a Knowledge Base</option>@for (item of knowledgeBases(); track item.id) { <option [value]="item.id">{{ item.title }} — v{{ item.version }}</option> }</select></div><div class="field"><label for="markdown-file">Markdown file (.md)</label><input id="markdown-file" name="markdownFile" type="file" accept=".md,text/markdown,text/plain" (change)="selectMarkdownFile($event)" required /></div><p class="field-hint">Maximum file size: 1 MB. A page title is taken from the filename; duplicate titles in one Knowledge Base are rejected.</p><button class="button button-primary" type="submit" [disabled]="loading() || !markdownFile">{{ loading() ? 'Uploading…' : 'Upload page' }}</button></form></section>
+              <section class="panel admin-info"><span class="info-icon">i</span><div><strong>Knowledge Base status</strong><p>Only active Knowledge Bases appear in listings. Deactivation keeps the metadata stored.</p></div></section>
+            </div>
+          </div>
+          <section class="panel form-panel kb-edit-panel"><div class="panel-heading"><div class="section-icon section-icon-blue">✎</div><div><h2>Edit a Knowledge Base</h2><p class="muted">Select an active Knowledge Base to load and update its metadata.</p></div></div>
+            <form (ngSubmit)="updateKnowledgeBase()" class="admin-form">
+              <div class="field"><label for="kb-edit-select">Knowledge Base</label><select id="kb-edit-select" name="selectedKnowledgeBaseID" [(ngModel)]="selectedKnowledgeBaseID" (ngModelChange)="selectKnowledgeBaseForEdit($event)" required><option value="" disabled>Select a Knowledge Base</option>@for (item of managedKnowledgeBases(); track item.id) { <option [value]="item.id">{{ item.title }} — v{{ item.version }} ({{ item.isActive ? 'Active' : 'Inactive' }})</option> }</select></div>
+              @if (selectedKnowledgeBaseID) {
+                <div class="form-row"><div class="field"><label for="edit-kb-title">Title <span class="required">*</span></label><input id="edit-kb-title" name="editTitle" [(ngModel)]="knowledgeBaseEditForm.title" required /></div><div class="field"><label for="edit-kb-version">Version <span class="required">*</span></label><input id="edit-kb-version" name="editVersion" [(ngModel)]="knowledgeBaseEditForm.version" required /></div></div>
+                <div class="field"><label for="edit-kb-folder">Folder name and version <span class="required">*</span></label><input id="edit-kb-folder" name="editFolderNameVersion" [(ngModel)]="knowledgeBaseEditForm.folderNameVersion" required /></div>
+                <div class="form-row"><div class="field"><label for="edit-kb-type">Content type <span class="required">*</span></label><select id="edit-kb-type" name="editContentType" [(ngModel)]="knowledgeBaseEditForm.contentType"><option>Free</option><option>Open-source</option><option>Copyrighted</option></select></div><div class="field"><label for="edit-kb-active">Status <span class="required">*</span></label><select id="edit-kb-active" name="editIsActive" [(ngModel)]="knowledgeBaseEditForm.isActive"><option [ngValue]="true">Active</option><option [ngValue]="false">Inactive</option></select></div></div>
+                <div class="field"><label for="edit-kb-author">Author</label><input id="edit-kb-author" name="editAuthor" [(ngModel)]="knowledgeBaseEditForm.author" /></div>
+                <div class="field"><label for="edit-kb-description">Description</label><textarea id="edit-kb-description" name="editDescription" [(ngModel)]="knowledgeBaseEditForm.description" rows="3"></textarea></div>
+                <details class="optional-fields"><summary>Additional metadata <span>Optional</span></summary><div class="field"><label for="edit-kb-email">Author email</label><input id="edit-kb-email" name="editEmailAddress" type="email" [(ngModel)]="knowledgeBaseEditForm.emailAddress" /></div><div class="field"><label for="edit-kb-toc">Table of Contents reference</label><input id="edit-kb-toc" name="editTableOfContents" [(ngModel)]="knowledgeBaseEditForm.tableOfContents" /></div></details>
+                <div class="form-actions"><button class="button button-primary" type="submit" [disabled]="loading()">{{ loading() ? 'Saving…' : 'Save changes' }}</button></div>
+              }
+            </form>
+          </section>
+          <section class="registered-section"><div class="section-title"><div><h2>Active Knowledge Bases</h2><p class="muted">Only active metadata is returned by the backend.</p></div><span class="count-badge">{{ knowledgeBases().length }}</span></div>
+            @if (knowledgeBases().length) { <div class="registered-list">@for (item of knowledgeBases(); track item.id) { <div class="registered-row"><span class="document-icon small-doc"><svg viewBox="0 0 24 24"><path d="M6 3.8A1.8 1.8 0 0 1 7.8 2h6.7L19 6.5v13.7a1.8 1.8 0 0 1-1.8 1.8H7.8A1.8 1.8 0 0 1 6 20.2V3.8Zm8 0v3.5h3.5M9 12h6m-6 3.5h6"/></svg></span><div class="registered-title"><strong>{{ item.title }}</strong><span>{{ item.folderNameVersion }}</span></div><span class="version-chip">v{{ item.version }}</span><span class="content-type">{{ item.contentType }}</span><button class="button button-secondary deactivate-button" type="button" [disabled]="loading()" (click)="deactivateKnowledgeBase(item)">Deactivate</button></div> }</div> } @else { <div class="registered-empty">No active Knowledge Bases are available.</div> }</section>
+        } @else if (page() === 'users' && isAdministrator()) {
+          <section class="page-heading admin-heading"><div><p class="eyebrow">WORKSPACE SETTINGS</p><h1>User Management</h1><p class="muted">Create user accounts, assign reader or administrator access, and update account details.</p></div></section>
+          <section class="registered-section"><div class="section-title"><div><h2>User Accounts</h2><p class="muted">Accounts and permissions returned by the backend.</p></div><div class="section-actions"><span class="count-badge">{{ registeredUsers().length }}</span><button class="button button-secondary" type="button" [disabled]="loading()" (click)="loadUsers()">Refresh</button></div></div>
+            @if (loading() && registeredUsers().length === 0) { <div class="loading-state"><span class="spinner"></span> Loading user accounts…</div> } @else if (registeredUsers().length) { <div class="registered-list">@for (account of registeredUsers(); track account.userID) { <div class="registered-row"><div class="registered-title"><strong>{{ account.userID }}</strong><span>{{ account.permissions }}</span></div></div> }</div> } @else { <div class="registered-empty">No user accounts were returned.</div> }
+          </section>
+          <div class="admin-grid user-management-grid">
+            <section class="panel form-panel"><div class="panel-heading"><div class="section-icon">＋</div><div><h2>Create a user</h2><p class="muted">New accounts start with no permissions.</p></div></div>
+                <form (ngSubmit)="createUser()" class="admin-form">
+                  <div class="field"><label for="new-user-id">User ID</label><input id="new-user-id" name="newUserID" [(ngModel)]="newUserID" required placeholder="Enter a new user ID" /></div>
+                  <div class="field"><label for="new-user-password">Initial password</label><input id="new-user-password" name="newUserPassword" type="password" autocomplete="new-password" [(ngModel)]="newUserPassword" required placeholder="Enter an initial password" /></div>
+                  <button class="button button-primary button-wide" type="submit" [disabled]="loading()">Create user</button>
+                </form>
+              </section>
+              <section class="panel form-panel permission-panel"><div class="panel-heading"><div class="section-icon section-icon-blue">♙</div><div><h2>Manage user access</h2><p class="muted">Grant or revoke a permission for a user.</p></div></div>
+                <form (ngSubmit)="changePermission('grant')" class="admin-form">
+                  <div class="field"><label for="target-user">User ID</label><select id="target-user" name="targetUserID" [(ngModel)]="targetUserID" required><option value="" disabled>Select a user</option>@for (account of registeredUsers(); track account.userID) { <option [value]="account.userID">{{ account.userID }} — {{ account.permissions.join(', ') }}</option> }</select></div>
+                  <div class="field"><label for="permission">Permission</label><select id="permission" name="permission" [(ngModel)]="permissionToChange"><option value="USER_ACCESS">Reader access</option><option value="ADMINISTRATOR_USER_ACCESS">Administrator access</option></select></div>
+                  <div class="permission-actions"><button class="button button-primary" type="submit" [disabled]="loading()">Grant access</button><button class="button button-secondary" type="button" [disabled]="loading()" (click)="changePermission('revoke')">Revoke</button></div>
+                  <p class="field-hint">Choose an account from the list returned by the backend.</p>
+                </form>
+              </section>
+              <section class="panel form-panel"><div class="panel-heading"><div class="section-icon section-icon-blue">✎</div><div><h2>Edit user account</h2><p class="muted">Change a user ID and optionally reset its password.</p></div></div>
+                <form (ngSubmit)="editUser()" class="admin-form">
+                  <div class="field"><label for="edit-user-id">Current user</label><select id="edit-user-id" name="editUserID" [(ngModel)]="editUserID" required><option value="" disabled>Select a user</option>@for (account of registeredUsers(); track account.userID) { <option [value]="account.userID">{{ account.userID }}</option> }</select></div>
+                  <div class="field"><label for="updated-user-id">New user ID</label><input id="updated-user-id" name="updatedUserID" [(ngModel)]="updatedUserID" required placeholder="Enter the new user ID" /></div>
+                  <div class="field"><label for="updated-user-password">New password <span class="optional-label">Optional</span></label><div class="field-password-control"><input id="updated-user-password" name="updatedUserPassword" [type]="showUpdatedUserPassword() ? 'text' : 'password'" autocomplete="new-password" [(ngModel)]="updatedUserPassword" placeholder="Leave blank to keep the current password" /><button class="password-toggle" type="button" [attr.aria-label]="showUpdatedUserPassword() ? 'Hide new password' : 'Show new password'" [attr.aria-pressed]="showUpdatedUserPassword()" (click)="toggleUpdatedUserPasswordVisibility()">{{ showUpdatedUserPassword() ? 'Hide' : 'Show' }}</button></div></div>
+                  <div class="field"><label for="updated-user-password-confirm">Confirm new password <span class="optional-label">Optional</span></label><div class="field-password-control"><input id="updated-user-password-confirm" name="updatedUserPasswordConfirm" [type]="showUpdatedUserPasswordConfirm() ? 'text' : 'password'" autocomplete="new-password" [(ngModel)]="updatedUserPasswordConfirm" placeholder="Re-enter the new password" /><button class="password-toggle" type="button" [attr.aria-label]="showUpdatedUserPasswordConfirm() ? 'Hide confirmation' : 'Show confirmation'" [attr.aria-pressed]="showUpdatedUserPasswordConfirm()" (click)="toggleUpdatedUserPasswordConfirmVisibility()">{{ showUpdatedUserPasswordConfirm() ? 'Hide' : 'Show' }}</button></div></div>
+                  @if (updatedUserPassword !== updatedUserPasswordConfirm) { <p class="field-hint" role="status">The passwords do not match.</p> }
+                  <button class="button button-secondary button-wide" type="submit" [disabled]="loading() || updatedUserPassword !== updatedUserPasswordConfirm">Update user</button>
+                </form>
+              </section>
+          </div>
+
+        }
+      </div>
+    </main>
+  </div>
+}

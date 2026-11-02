@@ -1,0 +1,29 @@
+# Java and Gradle build output
+**/.gradle/
+**/build/
+**/out/
+*.class
+
+# Angular and Node.js build output
+**/node_modules/
+**/dist/
+**/.angular/cache/
+**/coverage/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+docker-compose/data/
+**/application-local.properties
+
+# Logs and crash dumps
+*.log
+hs_err_pid*
+
+# Personal IDE and operating system files
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+Desktop.ini
