@@ -13,7 +13,7 @@ cd backend
 .\gradlew.bat clean build
 ```
 
-On macOS or Linux, use: 
+**On macOS or Linux, use:**
 ```bash
 ./gradlew clean build
 ```
@@ -28,7 +28,7 @@ cd backend
 .\gradlew.bat bootRun
 ```
 
-On macOS or Linux:
+**On macOS or Linux:**
 
 ```bash
 cd backend
@@ -45,7 +45,7 @@ npm.cmd install
 npm.cmd start
 ```
 
-On macOS or Linux:
+**On macOS or Linux:**
 
 ```bash
 cd ../frontend
