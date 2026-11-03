@@ -1,4 +1,4 @@
-# KBMT Knowledge Bases Mate
+# KBMT (Knowledge Base Mate)
 
 KBMT is a web application for managing and reading collections of Knowledge Base documents. The project specifications and detailed product requirements are in [SPECS.md](SPECS.md). This README describes the current implementation and explains how to run and test the application.
 
