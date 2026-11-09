@@ -5,18 +5,22 @@ KBMT is a web application for managing and reading collections of Knowledge Base
 ## 1. Quick Start
 
 ### 1.1 Build
+**DID YOU START THE DATABASE IN DOCKER**
 
 Install Java 21. From the repository root, build the backend on Windows:
 
-```powershell
-cd backend
-.\gradlew.bat clean build
-```
 
 **On macOS or Linux, use:**
 ```bash
 ./gradlew clean build
 ```
+
+**On Powershell**
+```powershell
+cd backend
+.\gradlew.bat clean build
+```
+
 from the `backend` directory. The build runs the backend tests against the in-memory H2 database at `jdbc:h2:mem:KBMT-test`, using user `sa` and an empty password. Tests do not need PostgreSQL. This H2 URL is for tests only—the running application uses PostgreSQL. No H2 web console is configured. See the [H2 Database Engine](https://h2database.com/) and its [FAQ](https://h2database.com/html/faq.html) for H2 details and connection defaults.
 
 ### 1.2 Run

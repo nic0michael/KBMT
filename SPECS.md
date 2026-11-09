@@ -309,7 +309,7 @@ KBMT will use a Docker-based containerised deployment architecture.
 | Containerisation | Docker |
 | IDE | IntelliJ IDEA Community Edition |
 
-The initial implementation will be designed to run locally using Docker and will also support development directly from IntelliJ IDEA Community Edition.
+The initial implementation will be designed to run locally using Docker and will also support development directly from IntelliJ IDEA Community Edition. The README Quick Start must remind developers to start the PostgreSQL Docker container before running the backend, which depends on that database.
 
 ---
 
