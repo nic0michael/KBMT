@@ -224,6 +224,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .field textarea { min-height: 64px; resize: vertical; }
 .required { color: #ba5a55; }
 .field-hint { display: block; margin-top: 6px; color: var(--ink-muted); font-size: 9px; line-height: 1.5; }
+.checkbox-field { display: flex; align-items: flex-start; gap: 8px; color: var(--ink-soft); font-size: 10px; line-height: 1.5; }
+.checkbox-field input { flex: 0 0 auto; width: auto; margin: 1px 0 0; }
 .optional-label { color: var(--ink-muted); font-size: 9px; font-weight: 400; }
 .optional-fields { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 11px 0; }
 .optional-fields summary { color: var(--ink-soft); cursor: pointer; list-style-position: inside; font-size: 10px; font-weight: 600; }

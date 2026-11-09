@@ -105,6 +105,8 @@ export class App {
   protected selectedUploadKnowledgeBaseID = '';
   protected selectedReaderKnowledgeBaseID = '';
   protected markdownFile: File | null = null;
+  protected knowledgeBaseZipFile: File | null = null;
+  protected overwriteKnowledgeBaseOnImport = false;
   protected knowledgeBaseEditForm: KnowledgeBaseForm = { ...EMPTY_KNOWLEDGE_BASE };
   protected targetUserID = '';
   protected permissionToChange: Permission = 'USER_ACCESS';
@@ -252,6 +254,70 @@ export class App {
   protected selectMarkdownFile(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.markdownFile = input.files?.[0] ?? null;
+  }
+
+  protected selectKnowledgeBaseZip(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.knowledgeBaseZipFile = input.files?.[0] ?? null;
+  }
+
+  protected async importKnowledgeBase(fileInput: HTMLInputElement): Promise<void> {
+    if (!this.isAdministrator()) return;
+    if (!this.knowledgeBaseZipFile) {
+      this.errorMessage.set('Select a Knowledge Base ZIP file to import.');
+      return;
+    }
+    this.clearMessages();
+    this.loading.set(true);
+    const form = new FormData();
+    form.append('file', this.knowledgeBaseZipFile);
+    try {
+      const imported = await firstValueFrom(this.http.post<KnowledgeBase>(
+        `/api/knowledge-bases/import?overwrite=${this.overwriteKnowledgeBaseOnImport}`, form,
+        { headers: this.authHeaders() },
+      ));
+      const isSameKnowledgeBase = (item: KnowledgeBase) => item.id === imported.id
+        || item.title.toLocaleLowerCase() === imported.title.toLocaleLowerCase();
+      this.managedKnowledgeBases.update(items => [imported, ...items.filter(item => !isSameKnowledgeBase(item))]);
+      this.knowledgeBases.update(items => imported.isActive
+        ? [imported, ...items.filter(item => !isSameKnowledgeBase(item))]
+        : items.filter(item => !isSameKnowledgeBase(item)));
+      const selectedKnowledgeBase = this.selectedKnowledgeBase();
+      if (selectedKnowledgeBase && isSameKnowledgeBase(selectedKnowledgeBase)) {
+        this.selectedKnowledgeBase.set(imported.isActive ? imported : null);
+      }
+      this.knowledgeBaseZipFile = null;
+      this.overwriteKnowledgeBaseOnImport = false;
+      fileInput.value = '';
+      this.successMessage.set(`${imported.title} was imported successfully.`);
+    } catch (error) {
+      this.errorMessage.set(this.describeError(error, 'Could not import this Knowledge Base ZIP.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  protected async exportKnowledgeBase(knowledgeBase: KnowledgeBase): Promise<void> {
+    if (!this.isAdministrator()) return;
+    this.clearMessages();
+    this.loading.set(true);
+    try {
+      const archive = await firstValueFrom(this.http.get(
+        `/api/knowledge-bases/${encodeURIComponent(knowledgeBase.id)}/export`,
+        { headers: this.authHeaders(), responseType: 'blob' },
+      ));
+      const objectUrl = URL.createObjectURL(archive);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${knowledgeBase.folderNameVersion}.zip`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      this.successMessage.set(`${knowledgeBase.title} was exported successfully.`);
+    } catch (error) {
+      this.errorMessage.set(this.describeError(error, 'Could not export this Knowledge Base.'));
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   protected async uploadMarkdownPage(): Promise<void> {

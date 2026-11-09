@@ -3,6 +3,8 @@ package com.togafmate.backend.controller;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,6 +38,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RestController
 @RequestMapping("/api/knowledge-bases")
 public class KnowledgeBaseController {
+    private static final Logger LOGGER = LoggerFactory.getLogger(KnowledgeBaseController.class);
+
     private final KnowledgeBaseService knowledgeBaseService;
     private final KnowledgeBaseValidator knowledgeBaseValidator;
     private final KnowledgeBasePageService pageService;
@@ -120,14 +124,22 @@ public class KnowledgeBaseController {
     public ResponseEntity<KnowledgeBaseResponse> importZip(@RequestParam("file") MultipartFile file,
             @Parameter(description = "Replace a Knowledge Base with the same title when its version differs")
             @RequestParam(defaultValue = "false") boolean overwrite) {
+        LOGGER.info("Starting Knowledge Base ZIP import: fileSizeBytes={}, overwrite={}", file.getSize(), overwrite);
         try {
             KnowledgeBase imported = contentService.importZip(file::getInputStream, overwrite);
+            LOGGER.info("Imported Knowledge Base ZIP into PostgreSQL: id={}, title={}, version={}",
+                    imported.getId(), imported.getTitle(), imported.getVersion());
             return ResponseEntity.status(HttpStatus.CREATED).body(new KnowledgeBaseResponse(imported.getId(),
                     imported.getTitle(), imported.getVersion(), imported.getDescription(), imported.getContentType(),
                     imported.getFolderNameVersion(), imported.getAuthor(), imported.getEmailAddress(),
                     imported.getTableOfContents(), imported.getIsActive()));
         } catch (IllegalArgumentException exception) {
+            LOGGER.error("Knowledge Base ZIP import failed: overwrite={}", overwrite, exception);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
+        } catch (RuntimeException exception) {
+            LOGGER.error("Database or server error during Knowledge Base ZIP import: overwrite={}", overwrite,
+                    exception);
+            throw exception;
         }
     }
 

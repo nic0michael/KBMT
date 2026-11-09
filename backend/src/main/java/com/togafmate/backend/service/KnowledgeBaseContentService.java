@@ -122,6 +122,10 @@ public class KnowledgeBaseContentService {
     /** Imports a validated ZIP atomically, replacing a title match only when explicitly requested. */
     @Transactional
     public KnowledgeBase importZip(ArchiveInputSupplier archiveSupplier, boolean overwrite) {
+        return importValidatedZip(archiveSupplier, overwrite);
+    }
+
+    private KnowledgeBase importValidatedZip(ArchiveInputSupplier archiveSupplier, boolean overwrite) {
         ArchiveMetadata archiveMetadata = validateArchive(archiveSupplier);
         JsonNode metadata = parseMetadata(archiveMetadata.metadataBytes());
         String title = requiredText(metadata, "title");
@@ -151,52 +155,67 @@ public class KnowledgeBaseContentService {
             fileRepository.deleteAllByKnowledgeBaseId(saved.getId());
             pageRepository.deleteAllByKnowledgeBaseId(saved.getId());
         }
-        long importedCount = persistArchiveFiles(archiveSupplier, saved);
-        LOGGER.info("Imported {} files into Knowledge Base {}", importedCount, saved.getId());
+        persistArchiveFiles(archiveSupplier, saved);
         return saved;
     }
 
     /** Confirms the Knowledge Base exists before the HTTP response starts streaming. */
     @Transactional(readOnly = true)
     public void validateExport(UUID knowledgeBaseId) {
-        requireKnowledgeBase(knowledgeBaseId);
+        try {
+            KnowledgeBase knowledgeBase = requireKnowledgeBase(knowledgeBaseId);
+            LOGGER.info("Preparing Knowledge Base ZIP export: id={}, title={}, version={}",
+                    knowledgeBaseId, knowledgeBase.getTitle(), knowledgeBase.getVersion());
+        } catch (RuntimeException exception) {
+            LOGGER.error("Failed to prepare Knowledge Base ZIP export: id={}", knowledgeBaseId, exception);
+            throw exception;
+        }
     }
 
     /** Streams a ZIP from PostgreSQL content and generated metadata to the response output. */
     @Transactional(readOnly = true)
     public void writeExportZip(UUID knowledgeBaseId, OutputStream output) throws IOException {
-        KnowledgeBase knowledgeBase = requireKnowledgeBase(knowledgeBaseId);
-        boolean hasReadme = false;
-        boolean hasMetadata = false;
-        long exportedCount = 0;
-        try (ZipOutputStream zip = new ZipOutputStream(output);
-                Stream<KnowledgeBaseFile> files = fileRepository.streamAllByKnowledgeBaseId(knowledgeBaseId)) {
-            var iterator = files.iterator();
-            while (iterator.hasNext()) {
-                KnowledgeBaseFile file = iterator.next();
-                putEntry(zip, file.getPath(), file.getContent());
-                hasReadme |= README_PATH.equals(file.getPath());
-                hasMetadata |= META_PATH.equals(file.getPath());
-                exportedCount++;
-            }
-            try (Stream<KnowledgeBasePage> pages = pageRepository.streamAllByKnowledgeBaseId(knowledgeBaseId)) {
-                var pageIterator = pages.iterator();
-                while (pageIterator.hasNext()) {
-                    KnowledgeBasePage page = pageIterator.next();
-                    String path = page.getTitle() + ".md";
-                    if (fileRepository.existsByKnowledgeBaseIdAndPath(knowledgeBaseId, path)) {
-                        throw new IOException("Legacy Markdown page conflicts with stored file path " + path);
-                    }
-                    putEntry(zip, path, page.getContent().getBytes(StandardCharsets.UTF_8));
+        LOGGER.info("Starting Knowledge Base ZIP export: id={}", knowledgeBaseId);
+        try {
+            KnowledgeBase knowledgeBase = requireKnowledgeBase(knowledgeBaseId);
+            LOGGER.info("Exporting Knowledge Base ZIP: id={}, title={}, version={}",
+                    knowledgeBaseId, knowledgeBase.getTitle(), knowledgeBase.getVersion());
+            boolean hasReadme = false;
+            boolean hasMetadata = false;
+            long exportedCount = 0;
+            try (ZipOutputStream zip = new ZipOutputStream(output);
+                    Stream<KnowledgeBaseFile> files = fileRepository.streamAllByKnowledgeBaseId(knowledgeBaseId)) {
+                var iterator = files.iterator();
+                while (iterator.hasNext()) {
+                    KnowledgeBaseFile file = iterator.next();
+                    putEntry(zip, file.getPath(), file.getContent());
+                    hasReadme |= README_PATH.equals(file.getPath());
+                    hasMetadata |= META_PATH.equals(file.getPath());
                     exportedCount++;
                 }
+                try (Stream<KnowledgeBasePage> pages = pageRepository.streamAllByKnowledgeBaseId(knowledgeBaseId)) {
+                    var pageIterator = pages.iterator();
+                    while (pageIterator.hasNext()) {
+                        KnowledgeBasePage page = pageIterator.next();
+                        String path = page.getTitle() + ".md";
+                        if (fileRepository.existsByKnowledgeBaseIdAndPath(knowledgeBaseId, path)) {
+                            throw new IOException("Legacy Markdown page conflicts with stored file path " + path);
+                        }
+                        putEntry(zip, path, page.getContent().getBytes(StandardCharsets.UTF_8));
+                        exportedCount++;
+                    }
+                }
+                if (!hasReadme) putEntry(zip, README_PATH, readme(knowledgeBase).getBytes(StandardCharsets.UTF_8));
+                if (!hasMetadata) putEntry(zip, META_PATH, metadataJson(knowledgeBase));
+                zip.finish();
+                zip.flush();
             }
-            if (!hasReadme) putEntry(zip, README_PATH, readme(knowledgeBase).getBytes(StandardCharsets.UTF_8));
-            if (!hasMetadata) putEntry(zip, META_PATH, metadataJson(knowledgeBase));
-            zip.finish();
-            zip.flush();
+            LOGGER.info("Exported Knowledge Base ZIP successfully: id={}, title={}, version={}, fileCount={}",
+                    knowledgeBaseId, knowledgeBase.getTitle(), knowledgeBase.getVersion(), exportedCount);
+        } catch (IOException | RuntimeException exception) {
+            LOGGER.error("Failed to export Knowledge Base ZIP: id={}", knowledgeBaseId, exception);
+            throw exception;
         }
-        LOGGER.info("Streamed {} stored files for Knowledge Base {}", exportedCount, knowledgeBaseId);
     }
 
     private ArchiveMetadata validateArchive(ArchiveInputSupplier archiveSupplier) {
@@ -232,8 +251,7 @@ public class KnowledgeBaseContentService {
         return new ArchiveMetadata(metadataBytes);
     }
 
-    private long persistArchiveFiles(ArchiveInputSupplier archiveSupplier, KnowledgeBase knowledgeBase) {
-        long count = 0;
+    private void persistArchiveFiles(ArchiveInputSupplier archiveSupplier, KnowledgeBase knowledgeBase) {
         try (ZipInputStream zip = new ZipInputStream(archiveSupplier.open())) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
@@ -246,12 +264,10 @@ public class KnowledgeBaseContentService {
                 validateContent(path, content);
                 fileRepository.save(new KnowledgeBaseFile(knowledgeBase, path, mediaType(path), content));
                 zip.closeEntry();
-                count++;
             }
         } catch (IOException exception) {
             throw new IllegalArgumentException("ZIP archive could not be read while storing files", exception);
         }
-        return count;
     }
 
     private byte[] readEntry(ZipInputStream zip, String path) throws IOException {

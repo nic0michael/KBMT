@@ -101,8 +101,8 @@ Administrators will be able to:
 
 - Create a Knowledge Base and register its metadata.
 - Upload approved content files to a selected Knowledge Base.
-- Import a Knowledge Base from a ZIP archive.
-- Export a Knowledge Base to a ZIP archive.
+- Import a Knowledge Base from a ZIP archive using an administrator-only file picker and an overwrite checkbox for an existing title.
+- Export a selected Knowledge Base as a downloadable ZIP through an administrator-only action.
 - Replace an existing Knowledge Base version.
 - Soft-deactivate or reactivate a Knowledge Base without deleting its metadata.
 - Manage access permissions.
@@ -254,8 +254,8 @@ Directly uploaded and ZIP-imported Knowledge Base Markdown, HTML, and metadata f
 #### Administrator journey
 
 1. The administrator signs in with their user ID and password and receives the reader experience plus an Admin area.
-2. In the Admin area, the administrator creates a Knowledge Base and uploads content files, or imports a Knowledge Base from ZIP. The administrator reviews validation feedback and sees confirmation when it is accepted.
-3. The administrator can export a Knowledge Base as ZIP, and can select a Knowledge Base to replace, deactivate, or reactivate it. The application requests confirmation before replacement or deactivation and displays the operation result.
+2. In the Admin area, the administrator creates a Knowledge Base and uploads content files, or selects a ZIP file to import. The administrator may select overwrite for a same-title Knowledge Base; replacement requires a different version. The application displays validation errors or import confirmation.
+3. The administrator can download a selected Knowledge Base as a ZIP archive, and can select a Knowledge Base to replace, deactivate, or reactivate it. The application requests confirmation before replacement or deactivation and displays the operation result.
 4. The administrator finds a user and grants or revokes reader or administrator permissions. The application confirms permission changes and reports success or failure.
 
 The user journeys describe the intended frontend experience. Upload, document retrieval, replacement, and deactivation require corresponding backend API operations before those steps can work end to end.
@@ -789,7 +789,8 @@ The backend must independently verify the user's permissions before performing t
 - `PUT /api/users/{userID}/permissions` accepts a JSON body containing a permission enum (`USER_ACCESS`, `ADMINISTRATOR_USER_ACCESS`, or `NO_ACCESS`) and requires `ADMINISTRATOR_USER_ACCESS`. The target user must already exist.
 - `POST /api/users/register` creates an account with `NO_ACCESS`; administrators may then grant the required permission.
 - `POST /api/knowledge-bases` validates Knowledge Base metadata, including required boolean `isActive`, persists the accepted metadata in PostgreSQL, and requires `ADMINISTRATOR_USER_ACCESS`. The backend must log the safe identifying fields submitted by the form and report successful persistence only after the database operation succeeds. If persistence fails, it must log the database error with relevant non-sensitive context and propagate an error response; it must not log author email addresses, description text, or Table of Contents content.
-- The REST API must provide administrator-authorized operations to upload approved content files to a selected Knowledge Base, import a Knowledge Base from ZIP, and export a selected Knowledge Base as ZIP. The API contract must document file size and type limits, logical path behavior, request/response formats, authorization, and import/export error responses in Swagger. Exact routes and request formats will be defined during API design.
+- The REST API provides administrator-authorized operations to upload approved content files to a selected Knowledge Base, import a Knowledge Base from ZIP using `POST /api/knowledge-bases/import`, and export a selected Knowledge Base as ZIP using `GET /api/knowledge-bases/{id}/export`. The API contract must document file size and type limits, logical path behavior, request/response formats, authorization, and import/export error responses in Swagger.
+- The backend must log INFO messages when ZIP import/export starts and completes successfully, including safe context such as the Knowledge Base ID, title, version, overwrite choice, and file count when available. Import or export failures must be logged at ERROR level with the relevant Knowledge Base ID or overwrite context and the exception. Do not log uploaded file contents or sensitive metadata.
 - `PUT /api/knowledge-bases/{id}` updates all Knowledge Base metadata, including required boolean `isActive`, using the same request fields and validation rules as creation. Setting `isActive` to `false` soft-deactivates the record; setting it to `true` reactivates it. The UUID in the path identifies the record and remains unchanged; the folder identifier may be changed only when it is valid and unique. The endpoint requires `ADMINISTRATOR_USER_ACCESS`.
 - `GET /api/knowledge-bases` returns active Knowledge Base metadata only and requires `USER_ACCESS` or `ADMINISTRATOR_USER_ACCESS`.
 - `GET /api/knowledge-bases/management` returns active and inactive Knowledge Base metadata for administrator editing and requires `ADMINISTRATOR_USER_ACCESS`.
