@@ -37,6 +37,13 @@ cd backend
 
 ### 1.3 Run the frontend
 
+The bootstrap administrator credentials are:
+
+- Logon ID: `admin`
+- Password: `ChangeThisPassword12@#`
+
+Use these credentials to sign in as the administrator for the first time, then change the password immediately in **User Administration**. Choose a private password that only you know. See [Change the administrator password](#15-change-the-administrator-password) for setup details.
+
 Install Node.js 24. From the repository root, open a second terminal while the API is running. On Windows PowerShell:
 
 ```powershell
@@ -70,25 +77,33 @@ The local backend runs at `http://localhost:8999`. Its database URL and credenti
 
 ### 1.4 Try the API in Swagger
 
-Open [Swagger UI](http://localhost:8999/swagger-ui/index.html). Log in once; the backend sets a short-lived HttpOnly JWT cookie, and the browser sends it automatically on protected Swagger requests. No manual token copying is needed when you run requests in the Swagger page.
+For full app testing, create a dedicated administrator account first. Open [Swagger UI](http://localhost:8999/swagger-ui/index.html) and log in as the bootstrap administrator (`admin`) using the configured password (the documented local default is `ChangeThisPassword12@#`). The backend sets a short-lived HttpOnly JWT cookie, and the browser sends it automatically on protected Swagger requests.
 
-Before testing the sequence, ensure the reader account exists. Use `POST /api/users/register` with **Try it out**:
+Register a test administrator with `POST /api/users/register` and **Try it out**. Choose your own password and keep it private:
 
 ```json
 {
-  "userID": "reader.demo",
-  "password": "DemoReaderPassword123!"
+  "userID": "admin.demo",
+  "password": "CHOOSE_A_PRIVATE_PASSWORD"
 }
 ```
 
-New accounts start with `NO_ACCESS`. In Swagger, run these requests in order:
+New accounts start with `NO_ACCESS`. While still logged in as the bootstrap administrator, call `PUT /api/users/admin.demo/permissions` and grant full administrator access:
 
-1. **Log on:** `POST /api/users/login` is public and does not need Swagger authorization. The configured admin user ID is `admin`. Enter the current `ADMIN_USER_PASSWORD` from the ignored `docker-compose/.env` file as the password; the password is intentionally not included in this README:
+```json
+{
+  "permission": "ADMINISTRATOR_USER_ACCESS"
+}
+```
+
+Then sign in as `admin.demo`. The account now has administrator access and can be used to test the app. In Swagger, run the following requests while logged in as that test administrator:
+
+1. **Log on:** `POST /api/users/login` is public and does not need Swagger authorization. Use the test administrator credentials you chose above:
 
    ```json
    {
-     "userID": "admin",
-     "password": "YOUR_ADMIN_USER_PASSWORD"
+     "userID": "admin.demo",
+     "password": "YOUR_PRIVATE_PASSWORD"
    }
    ```
 
@@ -97,7 +112,7 @@ New accounts start with `NO_ACCESS`. In Swagger, run these requests in order:
    ```bash
    curl -X POST 'http://localhost:8999/api/users/login' \
      -H 'Content-Type: application/json' \
-     -d '{"userID":"admin","password":"YOUR_ADMIN_USER_PASSWORD"}'
+     -d '{"userID":"admin.demo","password":"YOUR_PRIVATE_PASSWORD"}'
    ```
 
    Add that token as a Bearer header on protected requests. For example, create a Knowledge Base with:
@@ -116,7 +131,16 @@ New accounts start with `NO_ACCESS`. In Swagger, run these requests in order:
      }'
    ```
 
-2. **Grant reader access:** With the login token authorized, call `PUT /api/users/reader.demo/permissions` with:
+2. **Create a reader account:** Call `POST /api/users/register` with:
+
+   ```json
+   {
+     "userID": "reader.demo",
+     "password": "CHOOSE_A_PRIVATE_PASSWORD"
+   }
+   ```
+
+   New accounts start with `NO_ACCESS`. Grant reader access by calling `PUT /api/users/reader.demo/permissions` with:
 
    ```json
    {
@@ -129,7 +153,7 @@ New accounts start with `NO_ACCESS`. In Swagger, run these requests in order:
    ```json
    {
      "userID": "reader.updated",
-     "password": "NewDemoReaderPassword123!"
+     "password": "NEW_PRIVATE_PASSWORD"
    }
    ```
 
@@ -189,7 +213,7 @@ New accounts start with `NO_ACCESS`. In Swagger, run these requests in order:
    ```json
    {
      "userID": "reader.second",
-     "password": "DemoReaderPassword123!"
+     "password": "CHOOSE_A_PRIVATE_PASSWORD"
    }
    ```
 
@@ -216,11 +240,17 @@ New accounts start with `NO_ACCESS`. In Swagger, run these requests in order:
    ```json
    {
      "userID": "administrator.second",
-     "password": "NewDemoAdministratorPassword123!"
+     "password": "NEW_PRIVATE_PASSWORD"
    }
    ```
 
 Protected API calls accept `Authorization: Bearer <accessToken>` and the browser also accepts the HttpOnly cookie set by login. Login tokens expire after 15 minutes; sign in again to get a new token. Sign-out clears the browser cookie, and the Angular app clears its in-memory token. `POST /api/users/logon` remains available as a compatibility alias for `/api/users/login` and also returns a JWT. Configure `JWT_SECRET` as a Base64-encoded random value containing at least 32 bytes; never commit it. Use HTTPS when deploying outside local development.
+
+### 1.5 Change the administrator password
+
+The documented bootstrap password, `ChangeThisPassword12@#`, is a shared development default. Before deploying the application, change it to a private password. For a local run, edit the ignored `docker-compose/.env` file and set `ADMIN_USER_PASSWORD`. For Docker Compose, set `APP_BOOTSTRAP_ADMIN_PASSWORD` in `docker-compose/.env`. Keep these files private; they are excluded from Git. The backend applies this configured password at startup, so update the environment value before restarting it.
+
+To change a test administrator's password after startup, sign in as an administrator and use the Admin area to update that user's password. Through the API, call `PUT /api/users/{userID}` and provide the user's current ID, the desired ID (it can stay the same), and a new password. Do not include the private password in documentation, commits, screenshots, or shared logs. Passwords are stored as BCrypt hashes and are never returned by the API.
 
 ## 2. Docker Images and Deployment
 
