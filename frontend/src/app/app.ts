@@ -102,6 +102,7 @@ export class App {
   protected updatedUserPasswordConfirm = '';
   protected knowledgeBaseForm: KnowledgeBaseForm = { ...EMPTY_KNOWLEDGE_BASE };
   protected selectedKnowledgeBaseID = '';
+  protected selectedExportKnowledgeBaseID = '';
   protected selectedUploadKnowledgeBaseID = '';
   protected selectedReaderKnowledgeBaseID = '';
   protected markdownFile: File | null = null;
@@ -318,6 +319,17 @@ export class App {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  protected async exportSelectedKnowledgeBase(): Promise<void> {
+    const knowledgeBase = this.managedKnowledgeBases().find(
+      item => item.id === this.selectedExportKnowledgeBaseID,
+    );
+    if (!knowledgeBase) {
+      this.errorMessage.set('Select a Knowledge Base to export.');
+      return;
+    }
+    await this.exportKnowledgeBase(knowledgeBase);
   }
 
   protected async uploadMarkdownPage(): Promise<void> {
