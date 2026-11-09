@@ -70,8 +70,9 @@ Sign in with the bootstrap administrator credentials configured for the backend.
 
 1. Signing in with a user ID and password and using the returned permissions to control available pages.
 2. Browsing and searching registered Knowledge Base metadata as a reader or administrator.
-3. Registering Knowledge Base metadata and granting or revoking a user's reader or administrator permission from the Admin area.
-4. Choosing the Light, Gray, or Black theme.
+3. Registering Knowledge Base metadata in the Admin area. Validated metadata is saved to PostgreSQL; the backend logs the safe identifying fields and whether persistence succeeded or failed.
+4. Granting or revoking a user's reader or administrator permission from the Admin area.
+5. Choosing the Light, Gray, or Black theme.
 
 New users are created through `POST /api/users/register` (see **Try the API in Swagger**) and start with `NO_ACCESS`; an administrator can then grant them reader access in the frontend. Administrators can upload an individual `.md` file to an active Knowledge Base; its text is stored in PostgreSQL and the filename (without extension) becomes the page title. Readers can select a Knowledge Base, choose an uploaded page, and view its Markdown source. These page uploads are limited to 1 MB, and duplicate page titles within a Knowledge Base are rejected. The current application does not yet support general content-file uploads, ZIP import, or ZIP export. The API supports metadata updates and soft deactivation; it does not physically delete Knowledge Base records. The target workflows are described in `SPECS.md`.
 

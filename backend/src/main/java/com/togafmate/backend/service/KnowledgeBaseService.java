@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,8 +45,21 @@ public class KnowledgeBaseService {
 
     /** Saves a validated Knowledge Base and returns its metadata. */
     public KnowledgeBaseResponse save(KnowledgeBase knowledgeBase) {
-        KnowledgeBaseResponse response = toResponse(knowledgeBaseRepository.save(knowledgeBase));
-        LOGGER.info("Registered Knowledge Base {} version {}", response.title(), response.version());
+        LOGGER.info("Registering Knowledge Base: title={}, folderNameVersion={}, version={}, contentType={}, isActive={}",
+                knowledgeBase.getTitle(), knowledgeBase.getFolderNameVersion(), knowledgeBase.getVersion(),
+                knowledgeBase.getContentType(), knowledgeBase.getIsActive());
+        KnowledgeBase persisted;
+        try {
+            persisted = knowledgeBaseRepository.save(knowledgeBase);
+        } catch (DataAccessException exception) {
+            LOGGER.error("Database error while persisting Knowledge Base: title={}, folderNameVersion={}, version={}",
+                    knowledgeBase.getTitle(), knowledgeBase.getFolderNameVersion(), knowledgeBase.getVersion(),
+                    exception);
+            throw exception;
+        }
+        KnowledgeBaseResponse response = toResponse(persisted);
+        LOGGER.info("Persisted Knowledge Base to database: id={}, title={}, folderNameVersion={}, version={}",
+                response.id(), response.title(), response.folderNameVersion(), response.version());
         return response;
     }
 
