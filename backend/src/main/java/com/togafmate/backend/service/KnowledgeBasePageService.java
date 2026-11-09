@@ -6,6 +6,9 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.util.List;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Locale;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,8 +88,13 @@ public class KnowledgeBasePageService {
     @Transactional(readOnly = true)
     public List<KnowledgeBasePageResponse> list(UUID knowledgeBaseId) {
         requireActiveKnowledgeBase(knowledgeBaseId);
-        List<KnowledgeBasePageResponse> pages = pageRepository.findAllByKnowledgeBaseIdOrderByTitleAsc(knowledgeBaseId)
-                .stream().map(this::toResponse).toList();
+        List<KnowledgeBasePageResponse> pages = new ArrayList<>(pageRepository
+                .findAllByKnowledgeBaseIdOrderByTitleAsc(knowledgeBaseId).stream().map(this::toResponse).toList());
+        fileRepository.findAllByKnowledgeBaseIdOrderByPathAsc(knowledgeBaseId).stream()
+                .filter(file -> file.getPath().toLowerCase(Locale.ROOT).endsWith(".md"))
+                .map(file -> new KnowledgeBasePageResponse(file.getId(), file.getPath(), file.getCreatedAt()))
+                .forEach(pages::add);
+        pages.sort(Comparator.comparing(KnowledgeBasePageResponse::title, String.CASE_INSENSITIVE_ORDER));
         LOGGER.info("Retrieved {} Markdown pages for Knowledge Base {}", pages.size(), knowledgeBaseId);
         return pages;
     }
@@ -97,7 +105,10 @@ public class KnowledgeBasePageService {
         requireActiveKnowledgeBase(knowledgeBaseId);
         String content = pageRepository.findByIdAndKnowledgeBaseId(pageId, knowledgeBaseId)
                 .map(KnowledgeBasePage::getContent)
-                .orElseThrow(() -> new IllegalArgumentException("Markdown page was not found"));
+                .orElseGet(() -> fileRepository.findByIdAndKnowledgeBaseId(pageId, knowledgeBaseId)
+                        .filter(file -> file.getPath().toLowerCase(Locale.ROOT).endsWith(".md"))
+                        .map(file -> new String(file.getContent(), StandardCharsets.UTF_8))
+                        .orElseThrow(() -> new IllegalArgumentException("Markdown page was not found")));
         LOGGER.info("Retrieved Markdown page {} for Knowledge Base {}", pageId, knowledgeBaseId);
         return content;
     }

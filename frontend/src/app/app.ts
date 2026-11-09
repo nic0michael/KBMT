@@ -47,6 +47,14 @@ interface KnowledgeBasePage {
   id: string;
   title: string;
   createdAt: string;
+  path?: string;
+}
+
+interface KnowledgeBaseFile {
+  id: string;
+  path: string;
+  contentType: string;
+  size: number;
 }
 
 const EMPTY_KNOWLEDGE_BASE: KnowledgeBaseForm = {
@@ -107,7 +115,6 @@ export class App {
   protected selectedReaderKnowledgeBaseID = '';
   protected markdownFile: File | null = null;
   protected knowledgeBaseZipFile: File | null = null;
-  protected overwriteKnowledgeBaseOnImport = false;
   protected knowledgeBaseEditForm: KnowledgeBaseForm = { ...EMPTY_KNOWLEDGE_BASE };
   protected targetUserID = '';
   protected permissionToChange: Permission = 'USER_ACCESS';
@@ -227,10 +234,26 @@ export class App {
     this.selectedPage.set(null);
     this.markdownContent.set('');
     try {
-      const pages = await firstValueFrom(this.http.get<KnowledgeBasePage[]>(
+      const [pages, files] = await Promise.all([
+        firstValueFrom(this.http.get<KnowledgeBasePage[]>(
         `/api/knowledge-bases/${encodeURIComponent(knowledgeBaseID)}/pages`, { headers: this.authHeaders() },
-      ));
-      this.knowledgeBasePages.set(pages ?? []);
+        )),
+        firstValueFrom(this.http.get<KnowledgeBaseFile[]>(
+          `/api/knowledge-bases/${encodeURIComponent(knowledgeBaseID)}/files`, { headers: this.authHeaders() },
+        )),
+      ]);
+      const markdownFiles = (files ?? []).filter(file => file.path.toLocaleLowerCase().endsWith('.md'));
+      const markdownFileIDs = new Set(markdownFiles.map(file => file.id));
+      const storedFilePages: KnowledgeBasePage[] = markdownFiles.map(file => ({
+        id: file.id,
+        title: file.path.replace(/\.md$/i, ''),
+        createdAt: '',
+        path: file.path,
+      }));
+      this.knowledgeBasePages.set([
+        ...(pages ?? []).filter(page => !markdownFileIDs.has(page.id)),
+        ...storedFilePages,
+      ].sort((left, right) => left.title.localeCompare(right.title)));
     } catch (error) {
       this.errorMessage.set(this.describeError(error, 'Could not load pages for this Knowledge Base.'));
     }
@@ -242,10 +265,15 @@ export class App {
     this.markdownContent.set('');
     if (!page) return;
     try {
-      const content = await firstValueFrom(this.http.get(
-        `/api/knowledge-bases/${encodeURIComponent(this.selectedReaderKnowledgeBaseID)}/pages/${encodeURIComponent(page.id)}`,
-        { headers: this.authHeaders(), responseType: 'text' },
-      ));
+      const content = page.path
+        ? await firstValueFrom(this.http.get(
+          `/api/knowledge-bases/${encodeURIComponent(this.selectedReaderKnowledgeBaseID)}/files/content`,
+          { headers: this.authHeaders(), params: { path: page.path }, responseType: 'text' },
+        ))
+        : await firstValueFrom(this.http.get(
+          `/api/knowledge-bases/${encodeURIComponent(this.selectedReaderKnowledgeBaseID)}/pages/${encodeURIComponent(page.id)}`,
+          { headers: this.authHeaders(), responseType: 'text' },
+        ));
       this.markdownContent.set(content);
     } catch (error) {
       this.errorMessage.set(this.describeError(error, 'Could not load the selected page.'));
@@ -262,7 +290,7 @@ export class App {
     this.knowledgeBaseZipFile = input.files?.[0] ?? null;
   }
 
-  protected async importKnowledgeBase(fileInput: HTMLInputElement): Promise<void> {
+  protected async importKnowledgeBase(fileInput: HTMLInputElement, overwriteInput: HTMLInputElement): Promise<void> {
     if (!this.isAdministrator()) return;
     if (!this.knowledgeBaseZipFile) {
       this.errorMessage.set('Select a Knowledge Base ZIP file to import.');
@@ -272,9 +300,10 @@ export class App {
     this.loading.set(true);
     const form = new FormData();
     form.append('file', this.knowledgeBaseZipFile);
+    const overwrite = overwriteInput.checked;
     try {
       const imported = await firstValueFrom(this.http.post<KnowledgeBase>(
-        `/api/knowledge-bases/import?overwrite=${this.overwriteKnowledgeBaseOnImport}`, form,
+        `/api/knowledge-bases/import?overwrite=${overwrite}`, form,
         { headers: this.authHeaders() },
       ));
       const isSameKnowledgeBase = (item: KnowledgeBase) => item.id === imported.id
@@ -288,7 +317,7 @@ export class App {
         this.selectedKnowledgeBase.set(imported.isActive ? imported : null);
       }
       this.knowledgeBaseZipFile = null;
-      this.overwriteKnowledgeBaseOnImport = false;
+      overwriteInput.checked = false;
       fileInput.value = '';
       this.successMessage.set(`${imported.title} was imported successfully.`);
     } catch (error) {
@@ -432,24 +461,28 @@ export class App {
     }
   }
 
-  protected async deactivateKnowledgeBase(item: KnowledgeBase): Promise<void> {
+  protected async deleteKnowledgeBase(item: KnowledgeBase): Promise<void> {
     if (!this.isAdministrator() || !item.isActive) return;
-    if (!window.confirm(`Deactivate "${item.title}"? It will be hidden from listings and retained in the database.`)) return;
+    if (!window.confirm(`Delete "${item.title}"? It will be hidden from listings, while its metadata and content remain in the database.`)) return;
     this.clearMessages();
     this.loading.set(true);
-    const request = {
-      title: item.title,
-      folderNameVersion: item.folderNameVersion,
-      version: item.version,
-      author: item.author,
-      emailAddress: item.emailAddress,
-      tableOfContents: item.tableOfContents,
-      description: item.description,
-      contentType: item.contentType,
-      isActive: false,
-    };
     try {
-      const updated = await firstValueFrom(this.http.put<KnowledgeBase>(`/api/knowledge-bases/${encodeURIComponent(item.id)}`, request, {
+      const deletedPrefix = 'DELETED_';
+      const request = {
+        title: item.title.startsWith(deletedPrefix) ? item.title : `${deletedPrefix}${item.title}`,
+        folderNameVersion: item.folderNameVersion.startsWith(deletedPrefix)
+          ? item.folderNameVersion
+          : `${deletedPrefix}${item.folderNameVersion}`,
+        version: item.version,
+        author: item.author,
+        emailAddress: item.emailAddress,
+        tableOfContents: item.tableOfContents,
+        description: item.description,
+        contentType: item.contentType,
+        isActive: false,
+      };
+      const updated = await firstValueFrom(this.http.put<KnowledgeBase>(
+        `/api/knowledge-bases/${encodeURIComponent(item.id)}`, request, {
         headers: this.authHeaders(),
       }));
       this.knowledgeBases.update(items => items.filter(knowledgeBase => knowledgeBase.id !== item.id));
@@ -458,9 +491,9 @@ export class App {
         this.selectedKnowledgeBase.set(null);
         this.page.set('library');
       }
-      this.successMessage.set(`${item.title} was deactivated and remains stored.`);
+      this.successMessage.set(`${item.title} was deleted. Its title and folder are marked DELETED_, and its content remains stored.`);
     } catch (error) {
-      this.errorMessage.set(this.describeError(error, 'Could not deactivate this Knowledge Base.'));
+      this.errorMessage.set(this.describeError(error, 'Could not delete this Knowledge Base.'));
     } finally {
       this.loading.set(false);
     }

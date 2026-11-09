@@ -22,6 +22,8 @@ public interface KnowledgeBaseFileRepository extends JpaRepository<KnowledgeBase
     boolean existsByKnowledgeBaseIdAndPath(UUID knowledgeBaseId, String path);
     /** Finds a resource belonging to a Knowledge Base. */
     Optional<KnowledgeBaseFile> findByKnowledgeBaseIdAndPath(UUID knowledgeBaseId, String path);
+    /** Finds a resource by ID within the specified Knowledge Base. */
+    Optional<KnowledgeBaseFile> findByIdAndKnowledgeBaseId(UUID id, UUID knowledgeBaseId);
     /** Removes all resources belonging to a Knowledge Base. */
     void deleteAllByKnowledgeBaseId(UUID knowledgeBaseId);
 }

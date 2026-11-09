@@ -133,4 +133,9 @@ public class KnowledgeBase {
         tableOfContents = metadata.tableOfContents;
         isActive = metadata.isActive;
     }
+
+    /** Marks this Knowledge Base inactive without removing its metadata or content. */
+    public void deactivate() {
+        isActive = false;
+    }
 }

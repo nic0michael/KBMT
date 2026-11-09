@@ -60,4 +60,6 @@ public class KnowledgeBaseFile {
     public String getContentType() { return contentType; }
     /** Returns a copy of the stored bytes. */
     public byte[] getContent() { return content.clone(); }
+    /** Returns when the resource was stored. */
+    public Instant getCreatedAt() { return createdAt; }
 }

@@ -81,7 +81,7 @@ Users will be able to:
 - Navigate to other documents within the same Knowledge Base.
 - View authorised HTML documents and metadata-backed navigation resources.
 
-The reader interface will provide a Knowledge Base dropdown followed by a page list for the selected Knowledge Base. Selecting a page loads and displays its Markdown content. The backend must return only pages belonging to the selected, active Knowledge Base and enforce reader access.
+The reader interface will provide a Knowledge Base dropdown followed by a page list for the selected Knowledge Base. The list must include Markdown pages uploaded individually and `.md` files imported from ZIP archives, with logical paths preserved for imported files. Selecting an item loads and displays its Markdown content from PostgreSQL. The backend must return only pages and files belonging to the selected, active Knowledge Base and enforce reader access.
 
 The application will not require users to download an entire Knowledge Base to read an individual document.
 
@@ -617,7 +617,7 @@ The initial design will follow this process:
 4. Angular displays the Table of Contents.
 5. The user selects a document.
 6. The backend checks authorisation.
-7. The backend retrieves and returns the requested Markdown content.
+7. The backend retrieves and returns the requested Markdown content from either an individually uploaded page or an imported Markdown file stored in PostgreSQL.
 
 ### 8.3 Table of Contents Implementation
 

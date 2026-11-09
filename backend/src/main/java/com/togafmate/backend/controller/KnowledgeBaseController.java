@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -251,6 +252,22 @@ public class KnowledgeBaseController {
         }
         try {
             return knowledgeBaseService.update(id, metadata);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, exception.getMessage(), exception);
+        }
+    }
+
+    /** Soft-deactivates a Knowledge Base without deleting its metadata or content. */
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Deactivate Knowledge Base",
+            description = "Marks the Knowledge Base inactive while retaining its metadata and content.")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponse(responseCode = "200", description = "Knowledge Base deactivated successfully")
+    @ApiResponse(responseCode = "404", description = "Knowledge Base was not found")
+    @ApiResponse(responseCode = "403", description = "Administrator permission is required")
+    public KnowledgeBaseResponse deleteKnowledgeBase(@PathVariable UUID id) {
+        try {
+            return knowledgeBaseService.deactivate(id);
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, exception.getMessage(), exception);
         }

@@ -74,6 +74,17 @@ public class KnowledgeBaseService {
         return response;
     }
 
+    /** Soft-deactivates a Knowledge Base while retaining its metadata and content. */
+    @Transactional
+    public KnowledgeBaseResponse deactivate(UUID id) {
+        KnowledgeBase existing = knowledgeBaseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Knowledge Base was not found"));
+        existing.deactivate();
+        KnowledgeBaseResponse response = toResponse(knowledgeBaseRepository.save(existing));
+        LOGGER.info("Deactivated Knowledge Base: id={}, title={}", response.id(), response.title());
+        return response;
+    }
+
     private KnowledgeBaseResponse toResponse(KnowledgeBase knowledgeBase) {
         return new KnowledgeBaseResponse(knowledgeBase.getId(), knowledgeBase.getTitle(),
                 knowledgeBase.getVersion(), knowledgeBase.getDescription(), knowledgeBase.getContentType(),

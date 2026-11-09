@@ -133,10 +133,13 @@ public class KnowledgeBaseContentService {
         String folder = requiredText(metadata, "folder_name_version");
         String contentType = optionalText(metadata, "content_type", "Free");
         KnowledgeBase existing = knowledgeBaseRepository.findByTitleIgnoreCase(title).orElse(null);
-        if (existing != null && (!overwrite || existing.getVersion().equals(version))) {
-            throw new IllegalArgumentException(existing.getVersion().equals(version)
-                    ? "Imported version must differ from the existing Knowledge Base version"
-                    : "A Knowledge Base with this title already exists; select overwrite to replace it");
+        if (existing != null && !overwrite) {
+            LOGGER.warn("This is a duplicate record and will not be updated: title={}", title);
+            throw new IllegalArgumentException(
+                    "A Knowledge Base with this title already exists; select overwrite to replace it");
+        }
+        if (existing != null && existing.getVersion().equals(version)) {
+            throw new IllegalArgumentException("Imported version must differ from the existing Knowledge Base version");
         }
         KnowledgeBase candidate = new KnowledgeBase(title, folder, version,
                 optionalText(metadata, "author", null), optionalText(metadata, "email_address", null),

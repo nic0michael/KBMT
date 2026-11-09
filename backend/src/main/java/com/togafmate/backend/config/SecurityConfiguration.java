@@ -98,6 +98,8 @@ public class SecurityConfiguration {
                         .hasAuthority("ADMINISTRATOR_USER_ACCESS")
                         .requestMatchers(HttpMethod.PUT, "/api/knowledge-bases/*")
                         .hasAuthority("ADMINISTRATOR_USER_ACCESS")
+                        .requestMatchers(HttpMethod.DELETE, "/api/knowledge-bases/*")
+                        .hasAuthority("ADMINISTRATOR_USER_ACCESS")
                         .anyRequest().denyAll());
         return http.build();
     }
