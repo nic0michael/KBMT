@@ -40,13 +40,13 @@ public class DatabaseBackupService {
     /** Creates the service using Docker Compose database and backup settings. */
     @Autowired
     public DatabaseBackupService(
-            @Value("${app.database.backup.directory:/var/lib/postgresql/backup}") Path backupDirectory,
+            @Value("${app.database.backup.directory:/var/lib/postgresql/backup}") String backupDirectory,
             @Value("${app.database.backup.jdbc-url:${spring.datasource.url}}") String jdbcUrl,
             @Value("${spring.datasource.username:${DB_USERNAME:${POSTGRES_USER:postgres}}}") String username,
             @Value("${spring.datasource.password:${DB_PASSWORD:${POSTGRES_PASSWORD:}}}") String password,
             @Value("${app.database.backup.dump-command:pg_dump}") String dumpCommand,
             @Value("${app.database.backup.restore-command:pg_restore}") String restoreCommand) {
-        this(backupDirectory, jdbcUrlDatabase(jdbcUrl), jdbcUrlHost(jdbcUrl), jdbcUrlPort(jdbcUrl), username,
+        this(Path.of(backupDirectory), jdbcUrlDatabase(jdbcUrl), jdbcUrlHost(jdbcUrl), jdbcUrlPort(jdbcUrl), username,
                 password, dumpCommand, restoreCommand, Clock.systemDefaultZone());
     }
 
@@ -69,14 +69,23 @@ public class DatabaseBackupService {
 
     /** Lists valid backup files for the configured database. */
     public synchronized List<DatabaseBackup> listBackups() {
+        if (Files.notExists(backupDirectory)) {
+            LOGGER.info("No database backup directory exists yet at {}", backupDirectory);
+            return List.of();
+        }
         try {
-            Files.createDirectories(backupDirectory);
             try (var files = Files.list(backupDirectory)) {
-                return files.filter(Files::isRegularFile)
+                List<DatabaseBackup> backups = files.filter(Files::isRegularFile)
                         .filter(path -> isValidBackupName(path.getFileName().toString()))
                         .map(this::toBackup)
                         .sorted(Comparator.comparing(DatabaseBackup::fileName).reversed())
                         .toList();
+                if (backups.isEmpty()) {
+                    LOGGER.info("No database backups were found");
+                } else {
+                    LOGGER.info("Listed {} database backups", backups.size());
+                }
+                return backups;
             }
         } catch (IOException exception) {
             LOGGER.error("Could not list database backups", exception);

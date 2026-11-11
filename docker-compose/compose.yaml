@@ -44,6 +44,7 @@ services:
     volumes:
       - ./data:/var/lib/postgresql/data
       - ./backup:/var/lib/postgresql/backup
+      - ./scripts:/var/lib/postgresql/scripts
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s

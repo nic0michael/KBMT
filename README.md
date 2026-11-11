@@ -395,6 +395,12 @@ On macOS or Linux:
 
 JaCoCo reports are generated under `backend/build/reports/jacoco/test/`.
 
+Frontend unit tests use Angular's Vitest runner. From the `frontend` directory, run:
+
+```bash
+npm test -- --watch=false
+```
+
 ## 8. Repository layout
 
 ```text
@@ -403,4 +409,52 @@ README.md       Project overview, architecture, and usage instructions
 SPECS.md        Canonical project requirements and specifications
 backend/        Spring Boot REST API and tests
 frontend/       Angular frontend
+```
+
+## Database Backup and Restore
+
+Database dumps and restores must be performed by DevOps from inside the PostgreSQL container. First, copy the shell scripts into the server's `scripts` folder from the directory containing the `.sh` files, then make each script executable:
+
+```sh
+cp *.sh scripts/
+chmod 775 scripts/run-in-docker.sh
+chmod 775 scripts/make-db-dump.sh
+chmod 775 scripts/restore-db-from.sh
+```
+
+Use `chmod 775 <script-name>` for any additional script.
+
+Connect to the container and go to the scripts directory:
+
+```sh
+docker exec -it postgres sh
+cd /var/lib/postgresql/scripts
+```
+
+### Make a database dump
+
+Run:
+
+```sh
+./make-db-dump.sh
+```
+
+### Restore from dump
+
+List available dumps and choose the filename to restore:
+
+```sh
+ls -l ../backup
+```
+
+For example, the listing may include:
+
+```text
+-rw-r--r-- 1 root root 20183 Nov 11 13:00 kbmt_n8n_20261111130016.dump
+```
+
+Pass the chosen filename to the restore script:
+
+```sh
+./restore-db-from.sh kbmt_n8n_20261111130016.dump
 ```

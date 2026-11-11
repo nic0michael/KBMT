@@ -460,11 +460,14 @@ Administrators must be able to export a selected Knowledge Base as a streamed ZI
 
 - Backups of PostgreSQL must cover all application data, including Knowledge Base content and metadata.
 - Backup and recovery procedures must restore the database to a consistent state containing both Knowledge Base metadata and content.
-- PostgreSQL custom-format dumps are created with `pg_dump` and restored with `pg_restore` from the backend service.
+- Database backup and restore are DevOps responsibilities. An administrator must not create or restore database backups from the application frontend.
+- DevOps must create and restore PostgreSQL custom-format dumps from inside the PostgreSQL container, using `pg_dump` and `pg_restore` through the shell scripts in `/var/lib/postgresql/scripts`.
 - Backup filenames use `kbmt_<database>_YYYYddMMHHmmss.dump`, where `YYYY` is the four-digit year, `dd` is the day, `MM` is the month, `HH` is the hour, and `mmss` are the minute and second. No timezone marker is included.
-- Docker Compose mounts `./backup` at `/var/lib/postgresql/backup` in the PostgreSQL and backend containers. The backend container user must have write access to the mounted host directory.
-- The backend API exposes administrator-only operations to list backups (`GET /api/database/backups`), create a backup (`POST /api/database/backups`), and restore a selected backup (`POST /api/database/backups/{fileName}/restore`). Restore creates a safety backup before applying the selected dump.
-- Swagger/OpenAPI documents the endpoints, schemas, authorization requirement, and response codes.
+- Docker Compose mounts the host `./backup` directory at `/var/lib/postgresql/backup` and the host `./scripts` directory at `/var/lib/postgresql/scripts` in the PostgreSQL container.
+- The shell scripts are copied into the server's `scripts` directory with `cp *.sh scripts/` and made executable with `chmod 775 <script-name>`.
+- The `run-in-docker.sh` script opens a shell in the PostgreSQL container. DevOps runs `cd /var/lib/postgresql/scripts` inside the container before using the other scripts.
+- DevOps creates a dump with `./make-db-dump.sh`. To restore, DevOps lists dumps with `ls -l ../backup` and passes the selected filename to `./restore-db-from.sh <dump-filename>`.
+- The Database Management frontend page displays these DevOps instructions only. It must not list backups or call backend endpoints to create or restore them.
 - The mounted `./backup` folder is local backup storage. Deployment must also copy backups to a separate location so that loss of the VM or its disk does not destroy both the live data and its backups.
 - Recovery procedures must restore PostgreSQL and the corresponding Knowledge Base content together.
 - Replacement and deactivation operations must avoid leaving Knowledge Base metadata and content inconsistent.

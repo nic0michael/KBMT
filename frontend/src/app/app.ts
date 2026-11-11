@@ -2,10 +2,11 @@ import { Component, computed, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
+import { DatabaseManagementComponent } from './database-management';
 
 type Permission = 'USER_ACCESS' | 'ADMINISTRATOR_USER_ACCESS' | 'NO_ACCESS';
 type Theme = 'light' | 'gray' | 'black';
-type Page = 'library' | 'reader' | 'admin' | 'users';
+type Page = 'library' | 'reader' | 'admin' | 'users' | 'database';
 
 interface UserResponse {
   userID: string;
@@ -64,7 +65,7 @@ const EMPTY_KNOWLEDGE_BASE: KnowledgeBaseForm = {
 
 @Component({
   selector: 'app-root',
-  imports: [FormsModule],
+  imports: [FormsModule, DatabaseManagementComponent],
   host: { '[attr.data-theme]': 'theme()' },
   templateUrl: './app.html',
   styleUrl: './app.css',
@@ -118,7 +119,7 @@ export class App {
   protected knowledgeBaseEditForm: KnowledgeBaseForm = { ...EMPTY_KNOWLEDGE_BASE };
   protected targetUserID = '';
   protected permissionToChange: Permission = 'USER_ACCESS';
-  private authorization = '';
+  protected authorization = '';
 
   constructor(private readonly http: HttpClient) {}
 
@@ -611,7 +612,7 @@ export class App {
   }
 
   protected navigate(page: Page): void {
-    const isAdminPage = page === 'admin' || page === 'users';
+    const isAdminPage = page === 'admin' || page === 'users' || page === 'database';
     if (isAdminPage && !this.isAdministrator()) return;
     if (!isAdminPage && !this.hasReaderAccess()) return;
     this.page.set(page);

@@ -29,6 +29,22 @@ class DatabaseBackupServiceTest {
     }
 
     @Test
+    void should_returnEmptyList_withoutCreatingDirectory_whenBackupDirectoryDoesNotExist() {
+        Path missingDirectory = backupDirectory.resolve("not-created-yet");
+        DatabaseBackupService service = service(missingDirectory);
+
+        assertThat(service.listBackups()).isEmpty();
+        assertThat(missingDirectory).doesNotExist();
+    }
+
+    @Test
+    void should_returnEmptyList_whenBackupDirectoryContainsNoBackups() {
+        DatabaseBackupService service = service(backupDirectory);
+
+        assertThat(service.listBackups()).isEmpty();
+    }
+
+    @Test
     void should_rejectBackupNameOutsideConfiguredDatabase() {
         DatabaseBackupService service = service();
 
@@ -66,11 +82,19 @@ class DatabaseBackupServiceTest {
     }
 
     private DatabaseBackupService service() {
-        return service("pg_dump", "pg_restore");
+        return service(backupDirectory, "pg_dump", "pg_restore");
     }
 
     private DatabaseBackupService service(String dumpCommand, String restoreCommand) {
-        return new DatabaseBackupService(backupDirectory, "testdb", "localhost", 5432,
+        return service(backupDirectory, dumpCommand, restoreCommand);
+    }
+
+    private DatabaseBackupService service(Path directory) {
+        return service(directory, "pg_dump", "pg_restore");
+    }
+
+    private DatabaseBackupService service(Path directory, String dumpCommand, String restoreCommand) {
+        return new DatabaseBackupService(directory, "testdb", "localhost", 5432,
                 "testuser", "testpassword", dumpCommand, restoreCommand,
                 Clock.fixed(Instant.parse("2026-11-11T08:30:45Z"), ZoneOffset.UTC));
     }
