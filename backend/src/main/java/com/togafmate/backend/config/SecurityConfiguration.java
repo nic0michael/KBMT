@@ -76,6 +76,8 @@ public class SecurityConfiguration {
                         .hasAuthority("ADMINISTRATOR_USER_ACCESS")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/*/permissions")
                         .hasAuthority("ADMINISTRATOR_USER_ACCESS")
+                        .requestMatchers("/api/database/backups", "/api/database/backups/**")
+                        .hasAuthority("ADMINISTRATOR_USER_ACCESS")
                         .requestMatchers(HttpMethod.GET, "/api/knowledge-bases")
                         .hasAnyAuthority("USER_ACCESS", "ADMINISTRATOR_USER_ACCESS")
                         .requestMatchers(HttpMethod.GET, "/api/knowledge-bases/*/pages/**")

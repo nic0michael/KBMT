@@ -30,9 +30,17 @@ LABEL org.opencontainers.image.title="TOGAFmate Backend" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y ca-certificates openjdk-21-jre-headless \
+    && apt-get install --no-install-recommends -y ca-certificates curl gnupg openjdk-21-jre-headless \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+        | gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    && apt-get install --no-install-recommends -y postgresql-client-17 \
     && groupadd --gid 10001 app \
     && useradd --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app \
+    && install -d -o 10001 -g 10001 /var/lib/postgresql/backup \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

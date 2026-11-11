@@ -12,6 +12,9 @@ services:
 
   backend:
     image: "docker.io/zs6bvr/togafmate-backend:1.0"
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       DB_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB}"
@@ -20,11 +23,14 @@ services:
       JPA_DDL_AUTO: "${JPA_DDL_AUTO}"
       APP_BOOTSTRAP_ADMIN_USER_ID: "${APP_BOOTSTRAP_ADMIN_USER_ID}"
       APP_BOOTSTRAP_ADMIN_PASSWORD: "${APP_BOOTSTRAP_ADMIN_PASSWORD}"
+      DATABASE_BACKUP_DIRECTORY: /var/lib/postgresql/backup
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - togafmate
+    volumes:
+      - ./backup:/var/lib/postgresql/backup
 
   postgres:
     image: "postgres:${POSTGRES_VERSION}"
@@ -37,6 +43,7 @@ services:
       - "127.0.0.1:${POSTGRES_PORT}:5432"
     volumes:
       - ./data:/var/lib/postgresql/data
+      - ./backup:/var/lib/postgresql/backup
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s
