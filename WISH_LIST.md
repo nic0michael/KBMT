@@ -3,7 +3,7 @@
 The following features are proposed for future development, ordered by priority.
 
 1. Content Attachments
-· Upload images, PDFs and supporting documents.
+· Upload images, PDFs, MS Word documents and supporting documents.
 · Include diagrams and downloadable resources.
 · Manage attachments centrally.
 
