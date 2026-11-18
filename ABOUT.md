@@ -14,7 +14,7 @@ KBmate is a complete, open-source Knowledge Base application that allows organis
 - **Create Your Own Content:** Develop your own articles and Knowledge Bases, manage them and export your content.
 - **Source Code Included:** Customise and extend the application to meet your organisation's specific requirements.
 - **Database Backup and Restore:** Your DevOps team receives shell scripts to back up and restore the PostgreSQL database.
-- **Role-Based Access:** Control who can administer, create, approve, publish and read information.
+- **Role-Based Access:** Control who can administer, create, approve, publish and read information. JWT tokens authenticate users and support secure access to protected features.
 - **Self-Hosted:** Run the application using Docker and virtual machines on your own infrastructure.
 
 ### 3. Why Choose KBmate?
@@ -28,6 +28,7 @@ Your investment can instead focus on what really matters: your organisation's kn
 - Create and manage your own organisational content.
 - Import, export and distribute Knowledge Bases.
 - Avoid proprietary software licence fees.
+- There is no limit on the number of users.
 
 **You get the software, the source code and the freedom to make it your own.**
 
